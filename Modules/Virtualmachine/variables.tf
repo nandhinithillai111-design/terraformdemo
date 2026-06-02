@@ -14,7 +14,7 @@ variable "resource_group_name" {
   
 }
 variable "nic_id" {
-  description = "name of the nic"
-  type         =  string
+  description = "network interface IDs"
+  type        = list(string)
   
 }

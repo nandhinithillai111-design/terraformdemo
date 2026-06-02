@@ -1,7 +1,6 @@
 provider "azurerm" {
-  features { 
-  }
-skip_provider_registration = true
+  features {}
+  resource_provider_registrations = "core"
 }
 
 terraform {
@@ -18,6 +17,7 @@ terraform {
     container_name       = "tfstate"
     key                  = "terraform.tfstate"
     use_azuread_auth     =  true
+    tenant_id            = "e68dc8e6-282b-47fa-9d81-aaef661d0ecb"
   } 
 }
 module "nanrg" { 
@@ -34,9 +34,7 @@ module "vnet"{
     location            = var.location
     subnet_name         = var.subnet_name
     nic_name            = var.nic_name
-    subnet_id           = azurerm_subnet.subnet.id
-
-    }
+}
 
 module "vmname" {
     source              = "../Modules/Virtualmachine"
@@ -44,5 +42,5 @@ module "vmname" {
     vmname_name         = var.vmname
     resource_group_name = var.resource_group_name
     location            = var.location
-    nic_id              = azurerm_network_interface.nic.id
+    nic_id              = [module.vnet.nic_id]
 }
