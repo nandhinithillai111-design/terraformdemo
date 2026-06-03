@@ -11,7 +11,7 @@ variable "vmname" {
 variable "location" {
   description = "name of the location"
   type        =  string
-  default     = "eastus"
+  default     = "centralindia"
 }
 variable "vnet_name" {
   description = "name of the vnet"
