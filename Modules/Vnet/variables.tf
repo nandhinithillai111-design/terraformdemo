@@ -13,19 +13,15 @@ variable "resource_group_name" {
   type         =  string
   
 }
-variable "subnet_name" {
-  description  = "name of the Subnet"
-  type         =  string
-  
-}
+
 
 variable "nic_name" {
   description  = "name of the nic"
   type         =  string
   
 }
-variable "subnet_id" {
-  description  = "id of the Subnet"
-  type         =  string
-  
+
+variable "subnet_name" {
+  description = "name of the subnet"
+  type        = string
 }
