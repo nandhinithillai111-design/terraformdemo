@@ -1,0 +1,90 @@
+name: Terraform CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      target-environment:
+        description: 'Deployment target'
+        required: true
+        type: choice
+        options:
+          - dev
+          - int
+          - prod
+
+jobs:
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Terraform Init
+        working-directory: Dev
+        run: terraform init -input=false
+
+      - name: Terraform Format Check
+        working-directory: Dev
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Validate
+        working-directory: Dev
+        run: terraform validate
+
+      - name: Terraform Lint
+        uses: terraform-linters/tflint-action@v1
+        with:
+          directory: Dev
+
+      - name: Terraform Plan
+        working-directory: Dev
+        run: terraform plan -out=tfplan -input=false
+
+      - name: Upload tfplan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: Dev/tfplan
+
+  terraform-apply:
+    name: Terraform Apply
+    needs: terraform-plan
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs['target-environment'] || 'production' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Download tfplan artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: Dev
+
+      - name: Terraform Apply
+        working-directory: Dev
+        run: terraform apply -input=false tfplan
