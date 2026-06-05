@@ -24,11 +24,11 @@ output "nic_id" {
 }
 
 output "vm_id" {
-  description = "ID of the created virtual machine"
-  value       = module.vmname.vm_id
+  description = "IDs of the created virtual machines"
+  value       = module.vm[*].vm_id
 }
 
 output "vm_name" {
-  description = "Name of the created virtual machine"
-  value       = module.vmname.vm_name
+  description = "Names of the created virtual machines"
+  value       = module.vm[*].vm_name
 }
