@@ -21,8 +21,8 @@ resource "azurerm_subnet" "subnet" {
     }
   }
 }
-resource "azurerm_network_interface" "nic" {
-  name                = var.nic_name
+resource "azurerm_network_interface" "nic_id" {
+  name                = var.nic_id
   location            = var.location
   resource_group_name = var.resource_group_name 
 
