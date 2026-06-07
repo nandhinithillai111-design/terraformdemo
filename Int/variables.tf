@@ -4,12 +4,6 @@ variable "resource_group_name" {
   default     = "int-resourcegroup"
 }
 
-variable "vmname" {
-  description = "name of the vm"
-  type        = string
-  default     = "int-vm"
-}
-
 variable "location" {
   description = "name of the location"
   type        = string
