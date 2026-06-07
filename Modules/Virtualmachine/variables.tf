@@ -1,17 +1,17 @@
 variable "vmname_name" {
   description = "name of the vm"
-  type         =  string
-  
+  type        = string
+
 }
 variable "location" {
   description = "name of the location"
-  type         =  string
-  
+  type        = string
+
 }
 variable "resource_group_name" {
   description = "name of the resource group"
-  type         =  string
-  
+  type        = string
+
 }
 variable "nic_id" {
   description = "network interface ID"

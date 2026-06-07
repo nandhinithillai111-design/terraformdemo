@@ -1,6 +1,6 @@
 provider "azurerm" {
-    features {}
-    resource_provider_registrations = "core"
+  features {}
+  resource_provider_registrations = "core"
 }
 
 

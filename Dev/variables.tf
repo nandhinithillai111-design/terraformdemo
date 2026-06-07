@@ -1,31 +1,31 @@
 variable "resource_group_name" {
   description = "name of the resource group"
-  type        =  string
+  type        = string
   default     = "myresourcegroup"
 }
 variable "vmname" {
   description = "name of the vm"
-  type        =  string
+  type        = string
   default     = "myvm"
 }
 variable "location" {
   description = "name of the location"
-  type        =  string
+  type        = string
   default     = "centralindia"
 }
 variable "vnet_name" {
   description = "name of the vnet"
-  type        =  string
+  type        = string
   default     = "myvnet"
 }
 variable "subnet_name" {
   description = "name of the subnet"
-  type        =  string
+  type        = string
   default     = "mysubnet"
 }
 variable "nic_name" {
   description = "name of the nic"
-  type        =  string
+  type        = string
   default     = "mynic"
 }
 
