@@ -87,6 +87,11 @@ jobs:
     name: Plan (${{ github.event.inputs.target-environment }})
     needs: [resolve-environment, terraform-lint]
     runs-on: ubuntu-latest
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
     defaults:
       run:
         working-directory: ${{ needs.resolve-environment.outputs.working-directory }}
@@ -98,9 +103,6 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.6.6
-
-      - name: Configure Azure credentials
-        run: az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
 
       - name: Terraform init
         run: terraform init
@@ -120,6 +122,11 @@ jobs:
     needs: [resolve-environment, terraform-plan]
     runs-on: ubuntu-latest
     environment: ${{ needs.resolve-environment.outputs.environment }}
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
     defaults:
       run:
         working-directory: ${{ needs.resolve-environment.outputs.working-directory }}
@@ -131,9 +138,6 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.6.6
-
-      - name: Configure Azure credentials
-        run: az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
 
       - name: Download plan artifact
         uses: actions/download-artifact@v4
