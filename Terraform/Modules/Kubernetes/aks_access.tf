@@ -1,3 +1,5 @@
+data "azurerm_client_config" "current" {}
+
 # GitHub Actions service principal (ARM_CLIENT_ID) is auto-detected via client config.
 resource "azurerm_role_assignment" "github_actions_aks_cluster_admin" {
   scope                = azurerm_kubernetes_cluster.aks.id
