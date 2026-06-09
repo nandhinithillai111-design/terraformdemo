@@ -51,6 +51,18 @@ variable "aks_subnet_address_prefix" {
   default     = "10.0.2.0/24"
 }
 
+variable "service_cidr" {
+  description = "Kubernetes service CIDR — must not overlap with VNet or subnet ranges"
+  type        = string
+  default     = "10.1.0.0/16"
+}
+
+variable "dns_service_ip" {
+  description = "Kubernetes DNS service IP — must be within service_cidr"
+  type        = string
+  default     = "10.1.0.10"
+}
+
 variable "node_count" {
   description = "Number of nodes in the default node pool"
   type        = number
