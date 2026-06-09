@@ -1,0 +1,4 @@
+.autogit
+.terraform/
+*.tfstate
+*.tfstate.*
