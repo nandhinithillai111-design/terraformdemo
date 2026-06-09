@@ -1,6 +1,6 @@
 provider "azurerm" {
   features {}
-  resource_provider_registrations = "core"
+  resource_provider_registrations = "extended"
 }
 
 terraform {
@@ -12,6 +12,10 @@ terraform {
     random = {
       source  = "hashicorp/random"
       version = "~> 3.0"
+    }
+    time = {
+      source  = "hashicorp/time"
+      version = "~> 0.12"
     }
   }
   required_version = ">= 1.4.6"
@@ -91,6 +95,7 @@ module "kubernetes" {
   resource_group_name = var.resource_group_name
   location            = var.location
   vnet_name           = var.vnet_name
+  vnet_id             = module.vnet.vnet_id
   aks_subnet_name     = var.aks_subnet_name
   node_count          = var.aks_node_count
   vm_size             = var.aks_vm_size

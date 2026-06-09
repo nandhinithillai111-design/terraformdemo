@@ -23,6 +23,23 @@ variable "vnet_name" {
   type        = string
 }
 
+variable "vnet_id" {
+  description = "ID of the virtual network"
+  type        = string
+}
+
+variable "rbac_propagation_wait" {
+  description = "Duration to wait for RBAC role assignments to propagate before creating AKS"
+  type        = string
+  default     = "5m"
+}
+
+variable "aks_rbac_propagation_wait" {
+  description = "Duration to wait after AKS is created and CI/CD SPN is granted cluster access"
+  type        = string
+  default     = "5m"
+}
+
 variable "aks_subnet_name" {
   description = "Name of the AKS node subnet"
   type        = string

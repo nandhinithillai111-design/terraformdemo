@@ -17,18 +17,14 @@ resource "azurerm_user_assigned_identity" "aks_identity" {
   resource_group_name = var.resource_group_name
 }
 
-resource "azurerm_role_assignment" "aks_network" {
-  scope                = azurerm_subnet.aks_subnet.id
-  role_definition_name = "Network Contributor"
-  principal_id         = azurerm_user_assigned_identity.aks_identity.principal_id
-}
-
 resource "azurerm_log_analytics_workspace" "aks" {
   name                = "${var.cluster_name}-logs-${random_string.log_suffix.result}"
   location            = var.location
   resource_group_name = var.resource_group_name
   sku                 = "PerGB2018"
   retention_in_days   = 30
+
+  depends_on = [time_sleep.wait_for_rbac_propagation]
 }
 
 resource "azurerm_log_analytics_solution" "container_insights" {
@@ -74,7 +70,7 @@ resource "azurerm_kubernetes_cluster" "aks" {
   }
 
   depends_on = [
-    azurerm_role_assignment.aks_network,
+    time_sleep.wait_for_rbac_propagation,
     azurerm_log_analytics_solution.container_insights,
   ]
 }
