@@ -121,6 +121,7 @@ jobs:
     name: Apply (${{ github.event.inputs.target-environment }})
     needs: [resolve-environment, terraform-plan]
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     environment: ${{ needs.resolve-environment.outputs.environment }}
     env:
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -150,3 +151,34 @@ jobs:
 
       - name: Terraform apply
         run: terraform apply -input=false -auto-approve tfplan
+
+      - name: Azure login for AKS verification
+        if: needs.resolve-environment.outputs.environment == 'int'
+        uses: azure/login@v2
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
+
+      - name: Verify AKS access for Helm CI/CD (int only)
+        if: needs.resolve-environment.outputs.environment == 'int'
+        run: |
+          AKS_CLUSTER=$(terraform output -raw aks_cluster_name)
+          AKS_RG=$(terraform output -raw resource_group_name)
+          HELM_READY=$(terraform output -raw helm_deploy_ready)
+
+          echo "Helm deploy ready: $HELM_READY"
+          echo "CI/CD principal: $(terraform output -raw aks_cicd_principal_id)"
+          echo "Verifying AKS access for cluster: $AKS_CLUSTER"
+
+          az aks get-credentials \
+            --resource-group "$AKS_RG" \
+            --name "$AKS_CLUSTER" \
+            --overwrite-existing
+
+          kubectl get nodes
+          echo "GitHub Actions SP has AKS access. Run Helm Deploy workflow (int) next."

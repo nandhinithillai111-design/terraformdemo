@@ -57,3 +57,13 @@ output "aks_log_analytics_workspace_id" {
   description = "ID of the Log Analytics workspace for AKS"
   value       = module.kubernetes.log_analytics_workspace_id
 }
+
+output "aks_cicd_principal_id" {
+  description = "Object ID of the principal granted AKS access for Helm CI/CD"
+  value       = module.kubernetes.cicd_principal_id
+}
+
+output "helm_deploy_ready" {
+  description = "True when AKS RBAC has propagated and the Helm pipeline can run"
+  value       = module.kubernetes.helm_deploy_ready
+}
