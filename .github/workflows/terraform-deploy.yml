@@ -32,13 +32,13 @@ jobs:
         run: |
           case "${{ github.event.inputs.target-environment }}" in
             dev)
-              echo "working-directory=Dev" >> "$GITHUB_OUTPUT"
+              echo "working-directory=Terraform/Dev" >> "$GITHUB_OUTPUT"
               ;;
             int)
-              echo "working-directory=Int" >> "$GITHUB_OUTPUT"
+              echo "working-directory=Terraform/Int" >> "$GITHUB_OUTPUT"
               ;;
             prod)
-              echo "working-directory=Prod" >> "$GITHUB_OUTPUT"
+              echo "working-directory=Terraform/Prod" >> "$GITHUB_OUTPUT"
               ;;
             *)
               echo "Unknown environment: ${{ github.event.inputs.target-environment }}" >&2

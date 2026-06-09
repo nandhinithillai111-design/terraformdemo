@@ -1,0 +1,220 @@
+name: Helm Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'helm/**'
+      - '.github/workflows/helm-deploy.yml'
+  workflow_dispatch:
+    inputs:
+      target-environment:
+        description: 'Deployment target'
+        required: true
+        type: choice
+        options:
+          - int
+          - dev
+          - prod
+      release-name:
+        description: 'Helm release name'
+        required: false
+        default: sample-app
+      namespace:
+        description: 'Kubernetes namespace'
+        required: false
+        default: sample-app
+
+concurrency:
+  group: helm-${{ github.event.inputs.target-environment || 'int' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  CHART_PATH: helm/sample-app
+  HELM_VERSION: v3.14.4
+
+jobs:
+  resolve-environment:
+    name: Resolve environment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.set-env.outputs.environment }}
+      aks_cluster_name: ${{ steps.set-env.outputs.aks_cluster_name }}
+      aks_resource_group: ${{ steps.set-env.outputs.aks_resource_group }}
+      values_file: ${{ steps.set-env.outputs.values_file }}
+      release_name: ${{ steps.set-env.outputs.release_name }}
+      namespace: ${{ steps.set-env.outputs.namespace }}
+    steps:
+      - name: Map environment to AKS cluster
+        id: set-env
+        run: |
+          TARGET="${{ github.event.inputs.target-environment || 'int' }}"
+          RELEASE="${{ github.event.inputs.release-name || 'sample-app' }}"
+          NAMESPACE="${{ github.event.inputs.namespace || 'sample-app' }}"
+
+          case "$TARGET" in
+            int)
+              CLUSTER="int-aks"
+              RG="int-resourcegroup"
+              VALUES="values-int.yaml"
+              ;;
+            dev)
+              CLUSTER="${AKS_CLUSTER_NAME_DEV:-dev-aks}"
+              RG="${AKS_RESOURCE_GROUP_DEV:-dev-resourcegroup}"
+              VALUES="values.yaml"
+              ;;
+            prod)
+              CLUSTER="${AKS_CLUSTER_NAME_PROD:-prod-aks}"
+              RG="${AKS_RESOURCE_GROUP_PROD:-prod-resourcegroup}"
+              VALUES="values.yaml"
+              ;;
+            *)
+              echo "Unknown environment: $TARGET" >&2
+              exit 1
+              ;;
+          esac
+
+          echo "environment=$TARGET" >> "$GITHUB_OUTPUT"
+          echo "aks_cluster_name=$CLUSTER" >> "$GITHUB_OUTPUT"
+          echo "aks_resource_group=$RG" >> "$GITHUB_OUTPUT"
+          echo "values_file=$VALUES" >> "$GITHUB_OUTPUT"
+          echo "release_name=$RELEASE" >> "$GITHUB_OUTPUT"
+          echo "namespace=$NAMESPACE" >> "$GITHUB_OUTPUT"
+
+  helm-lint:
+    name: Lint (${{ github.event.inputs.target-environment || 'int' }})
+    needs: resolve-environment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Helm lint
+        run: |
+          helm lint ${{ env.CHART_PATH }} \
+            -f ${{ env.CHART_PATH }}/${{ needs.resolve-environment.outputs.values_file }}
+
+      - name: Helm template (render check)
+        run: |
+          helm template ${{ needs.resolve-environment.outputs.release_name }} ${{ env.CHART_PATH }} \
+            -f ${{ env.CHART_PATH }}/${{ needs.resolve-environment.outputs.values_file }} \
+            --namespace ${{ needs.resolve-environment.outputs.namespace }} \
+            > /dev/null
+
+  helm-plan:
+    name: Plan (${{ github.event.inputs.target-environment || 'int' }})
+    needs: [resolve-environment, helm-lint]
+    runs-on: ubuntu-latest
+    env:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Set AKS context
+        run: |
+          az aks get-credentials \
+            --resource-group ${{ needs.resolve-environment.outputs.aks_resource_group }} \
+            --name ${{ needs.resolve-environment.outputs.aks_cluster_name }} \
+            --overwrite-existing
+
+      - name: Ensure namespace exists (dry-run)
+        run: |
+          kubectl create namespace ${{ needs.resolve-environment.outputs.namespace }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Helm dry-run against cluster
+        run: |
+          helm upgrade --install ${{ needs.resolve-environment.outputs.release_name }} ${{ env.CHART_PATH }} \
+            -f ${{ env.CHART_PATH }}/${{ needs.resolve-environment.outputs.values_file }} \
+            --namespace ${{ needs.resolve-environment.outputs.namespace }} \
+            --create-namespace \
+            --atomic \
+            --wait \
+            --timeout 5m \
+            --dry-run=server
+
+  helm-deploy:
+    name: Deploy (${{ github.event.inputs.target-environment || 'int' }})
+    needs: [resolve-environment, helm-plan]
+    runs-on: ubuntu-latest
+    environment: ${{ needs.resolve-environment.outputs.environment }}
+    env:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Set AKS context
+        run: |
+          az aks get-credentials \
+            --resource-group ${{ needs.resolve-environment.outputs.aks_resource_group }} \
+            --name ${{ needs.resolve-environment.outputs.aks_cluster_name }} \
+            --overwrite-existing
+
+      - name: Deploy Helm release
+        run: |
+          helm upgrade --install ${{ needs.resolve-environment.outputs.release_name }} ${{ env.CHART_PATH }} \
+            -f ${{ env.CHART_PATH }}/${{ needs.resolve-environment.outputs.values_file }} \
+            --namespace ${{ needs.resolve-environment.outputs.namespace }} \
+            --create-namespace \
+            --atomic \
+            --wait \
+            --timeout 5m
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment \
+            -n ${{ needs.resolve-environment.outputs.namespace }} \
+            -l app.kubernetes.io/instance=${{ needs.resolve-environment.outputs.release_name }} \
+            --timeout=120s
+          kubectl get svc,deploy,pods \
+            -n ${{ needs.resolve-environment.outputs.namespace }} \
+            -l app.kubernetes.io/instance=${{ needs.resolve-environment.outputs.release_name }}

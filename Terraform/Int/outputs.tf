@@ -32,3 +32,28 @@ output "vm_name" {
   description = "Names of the created virtual machines"
   value       = module.vm[*].vm_name
 }
+
+output "aks_cluster_id" {
+  description = "ID of the AKS cluster"
+  value       = module.kubernetes.cluster_id
+}
+
+output "aks_cluster_name" {
+  description = "Name of the AKS cluster"
+  value       = module.kubernetes.cluster_name
+}
+
+output "aks_cluster_fqdn" {
+  description = "FQDN of the AKS cluster API server"
+  value       = module.kubernetes.cluster_fqdn
+}
+
+output "aks_subnet_id" {
+  description = "ID of the AKS node subnet"
+  value       = module.kubernetes.aks_subnet_id
+}
+
+output "aks_log_analytics_workspace_id" {
+  description = "ID of the Log Analytics workspace for AKS"
+  value       = module.kubernetes.log_analytics_workspace_id
+}

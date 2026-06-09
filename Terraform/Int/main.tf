@@ -48,7 +48,7 @@ module "vnet" {
 }
 
 resource "azurerm_network_interface" "vm_nic" {
-  count               = 2
+  count               = 1
   name                = "vm-nic-${count.index + 1}"
   location            = var.location
   resource_group_name = var.resource_group_name
@@ -62,7 +62,7 @@ resource "azurerm_network_interface" "vm_nic" {
 
 module "vm" {
   source              = "../Modules/Virtualmachine"
-  count               = 2
+  count               = 1
   depends_on          = [module.vnet]
   vmname_name         = "vm-${count.index + 1}"
   resource_group_name = var.resource_group_name
@@ -81,4 +81,17 @@ module "kv" {
   kv_name             = each.value
   resource_group_name = var.resource_group_name
   location            = var.location
+}
+
+module "kubernetes" {
+  source              = "../Modules/Kubernetes"
+  depends_on          = [module.vnet]
+  cluster_name        = var.aks_cluster_name
+  dns_prefix          = var.aks_dns_prefix
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  vnet_name           = var.vnet_name
+  aks_subnet_name     = var.aks_subnet_name
+  node_count          = var.aks_node_count
+  vm_size             = var.aks_vm_size
 }
