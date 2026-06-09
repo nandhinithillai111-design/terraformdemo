@@ -1,12 +1,6 @@
 name: Helm Deploy
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'helm/**'
-      - '.github/workflows/helm-deploy.yml'
   workflow_dispatch:
     inputs:
       target-environment:
@@ -27,7 +21,7 @@ on:
         default: sample-app
 
 concurrency:
-  group: helm-${{ github.event.inputs.target-environment || 'int' }}
+  group: helm-${{ github.event.inputs.target-environment }}
   cancel-in-progress: false
 
 permissions:
@@ -52,7 +46,7 @@ jobs:
       - name: Map environment to AKS cluster
         id: set-env
         run: |
-          TARGET="${{ github.event.inputs.target-environment || 'int' }}"
+          TARGET="${{ github.event.inputs.target-environment }}"
           RELEASE="${{ github.event.inputs.release-name || 'sample-app' }}"
           NAMESPACE="${{ github.event.inputs.namespace || 'sample-app' }}"
 
@@ -86,7 +80,7 @@ jobs:
           echo "namespace=$NAMESPACE" >> "$GITHUB_OUTPUT"
 
   helm-lint:
-    name: Lint (${{ github.event.inputs.target-environment || 'int' }})
+    name: Lint (${{ github.event.inputs.target-environment }})
     needs: resolve-environment
     runs-on: ubuntu-latest
     steps:
@@ -111,7 +105,7 @@ jobs:
             > /dev/null
 
   helm-plan:
-    name: Plan (${{ github.event.inputs.target-environment || 'int' }})
+    name: Plan (${{ github.event.inputs.target-environment }})
     needs: [resolve-environment, helm-lint]
     runs-on: ubuntu-latest
     env:
@@ -163,7 +157,7 @@ jobs:
             --dry-run=server
 
   helm-deploy:
-    name: Deploy (${{ github.event.inputs.target-environment || 'int' }})
+    name: Deploy (${{ github.event.inputs.target-environment }})
     needs: [resolve-environment, helm-plan]
     runs-on: ubuntu-latest
     environment: ${{ needs.resolve-environment.outputs.environment }}
